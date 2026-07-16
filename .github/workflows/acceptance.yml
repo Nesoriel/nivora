@@ -1,0 +1,148 @@
+name: Production Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Acceptance suite to run
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - probe
+          - regression
+          - load
+          - shadow
+      load_requests:
+        description: Total load-test requests
+        required: false
+        default: '100'
+      load_concurrency:
+        description: Load-test concurrency
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_URL: ${{ vars.NIVORA_ACCEPTANCE_CANDIDATE_URL }}
+  BASELINE_URL: ${{ vars.NIVORA_ACCEPTANCE_BASELINE_URL }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: nivora-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - run: go build -trimpath ./...
+
+  probe:
+    if: inputs.suite == 'all' || inputs.suite == 'probe'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: nivora-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - name: Run security probes
+        env:
+          NIVORA_PROBE_SHARED_SECRET: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_KEY }}
+          NIVORA_PROBE_BEARER_TOKEN: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_BEARER }}
+        run: |
+          go run ./cmd/nivora-probe \
+            -base-url "$CANDIDATE_URL" \
+            -output probe-results.jsonl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-probe-results
+          path: probe-results.jsonl
+
+  regression:
+    if: inputs.suite == 'all' || inputs.suite == 'regression'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: nivora-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - name: Run support regression
+        env:
+          NIVORA_EVAL_SHARED_SECRET: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_KEY }}
+          NIVORA_EVAL_BEARER_TOKEN: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_BEARER }}
+        run: |
+          go run ./cmd/nivora-eval \
+            -base-url "$CANDIDATE_URL" \
+            -output regression-results.jsonl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: support-regression-results
+          path: regression-results.jsonl
+
+  load:
+    if: inputs.suite == 'all' || inputs.suite == 'load'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: nivora-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - name: Run bounded load test
+        env:
+          NIVORA_LOAD_SHARED_SECRET: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_KEY }}
+          NIVORA_LOAD_BEARER_TOKEN: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_BEARER }}
+        run: |
+          go run ./cmd/nivora-load \
+            -base-url "$CANDIDATE_URL" \
+            -requests "${{ inputs.load_requests }}" \
+            -concurrency "${{ inputs.load_concurrency }}" \
+            > load-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-results
+          path: load-results.json
+
+  shadow:
+    if: inputs.suite == 'all' || inputs.suite == 'shadow'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: nivora-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - name: Compare baseline and candidate
+        env:
+          NIVORA_SHADOW_BASELINE_KEY: ${{ secrets.NIVORA_ACCEPTANCE_BASELINE_KEY }}
+          NIVORA_SHADOW_CANDIDATE_KEY: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_KEY }}
+          NIVORA_SHADOW_BASELINE_BEARER: ${{ secrets.NIVORA_ACCEPTANCE_BASELINE_BEARER }}
+          NIVORA_SHADOW_CANDIDATE_BEARER: ${{ secrets.NIVORA_ACCEPTANCE_CANDIDATE_BEARER }}
+        run: |
+          go run ./cmd/nivora-shadow \
+            -baseline-url "$BASELINE_URL" \
+            -candidate-url "$CANDIDATE_URL" \
+            -output shadow-results.jsonl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shadow-results
+          path: shadow-results.jsonl

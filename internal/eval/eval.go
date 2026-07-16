@@ -33,22 +33,24 @@ type Expectations struct {
 
 // Observation is collected from one Nivora SSE run.
 type Observation struct {
-	Answer    string        `json:"answer"`
-	Tools     []string      `json:"tools"`
-	Completed bool          `json:"completed"`
-	ErrorCode string        `json:"error_code,omitempty"`
-	Duration  time.Duration `json:"-"`
+	Answer     string        `json:"answer"`
+	Tools      []string      `json:"tools"`
+	Completed  bool          `json:"completed"`
+	ErrorCode  string        `json:"error_code,omitempty"`
+	FirstToken time.Duration `json:"-"`
+	Duration   time.Duration `json:"-"`
 }
 
 // Result is a JSONL-friendly evaluation output.
 type Result struct {
-	ID         string   `json:"id"`
-	Passed     bool     `json:"passed"`
-	Failures   []string `json:"failures,omitempty"`
-	DurationMS int64    `json:"duration_ms"`
-	Answer     string   `json:"answer"`
-	Tools      []string `json:"tools"`
-	ErrorCode  string   `json:"error_code,omitempty"`
+	ID           string   `json:"id"`
+	Passed       bool     `json:"passed"`
+	Failures     []string `json:"failures,omitempty"`
+	FirstTokenMS int64    `json:"first_token_ms,omitempty"`
+	DurationMS   int64    `json:"duration_ms"`
+	Answer       string   `json:"answer"`
+	Tools        []string `json:"tools"`
+	ErrorCode    string   `json:"error_code,omitempty"`
 }
 
 // LoadJSONL reads a deterministic evaluation dataset.
@@ -89,12 +91,13 @@ func LoadJSONL(reader io.Reader) ([]Case, error) {
 // Evaluate applies deterministic assertions to one observation.
 func Evaluate(item Case, observation Observation) Result {
 	result := Result{
-		ID:         item.ID,
-		Passed:     true,
-		DurationMS: observation.Duration.Milliseconds(),
-		Answer:     observation.Answer,
-		Tools:      append([]string(nil), observation.Tools...),
-		ErrorCode:  observation.ErrorCode,
+		ID:           item.ID,
+		Passed:       true,
+		FirstTokenMS: observation.FirstToken.Milliseconds(),
+		DurationMS:   observation.Duration.Milliseconds(),
+		Answer:       observation.Answer,
+		Tools:        append([]string(nil), observation.Tools...),
+		ErrorCode:    observation.ErrorCode,
 	}
 	answer := strings.ToLower(observation.Answer)
 	toolSet := make(map[string]struct{}, len(observation.Tools))

@@ -85,6 +85,9 @@ func (c Client) Run(ctx context.Context, item Case) (Observation, error) {
 		}
 		switch event.Type {
 		case "message.delta":
+			if observation.FirstToken == 0 {
+				observation.FirstToken = time.Since(started)
+			}
 			observation.Answer += event.Content
 		case "tool.started":
 			observation.Tools = append(observation.Tools, event.ToolName)
@@ -93,6 +96,9 @@ func (c Client) Run(ctx context.Context, item Case) (Observation, error) {
 		case "error":
 			observation.ErrorCode = event.Code
 			if event.Content != "" {
+				if observation.FirstToken == 0 {
+					observation.FirstToken = time.Since(started)
+				}
 				observation.Answer += event.Content
 			}
 		}
