@@ -33,7 +33,7 @@ func (f *fakePromptClient) PromptFormat(context.Context, *entity.Prompt, map[str
 func TestRemoteUsesApprovedPromptVersion(t *testing.T) {
 	content := "Only use verified provider facts."
 	client := &fakePromptClient{
-		prompt: &entity.Prompt{Version: "v7"},
+		prompt:   &entity.Prompt{Version: "v7"},
 		messages: []*entity.Message{{Role: entity.RoleSystem, Content: &content}},
 	}
 	source, err := Remote(context.Background(), client, RemoteConfig{

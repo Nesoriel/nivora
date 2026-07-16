@@ -8,10 +8,10 @@ import (
 
 func TestFilterTagsRemovesMessageAndSecretPayloads(t *testing.T) {
 	filtered := filterTags(map[string]any{
-		tracespec.Input:        "customer secret",
-		tracespec.Output:       "private provider payload",
-		tracespec.ModelName:    "ep-safe",
-		tracespec.InputTokens:  12,
+		tracespec.Input:       "customer secret",
+		tracespec.Output:      "private provider payload",
+		tracespec.ModelName:   "ep-safe",
+		tracespec.InputTokens: 12,
 		"authorization":       "Bearer should-never-leave",
 		"provider_raw_result": map[string]any{"recipe": "hidden"},
 	})

@@ -69,9 +69,9 @@ type remoteSource struct {
 	fallback Source
 	logger   *slog.Logger
 
-	mu       sync.RWMutex
-	current  Snapshot
-	cancel   context.CancelFunc
+	mu        sync.RWMutex
+	current   Snapshot
+	cancel    context.CancelFunc
 	closeOnce sync.Once
 }
 

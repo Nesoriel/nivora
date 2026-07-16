@@ -11,32 +11,32 @@ import (
 
 // Config contains the runtime configuration for Nivora.
 type Config struct {
-	Address                  string
-	SharedSecret             string
-	TenantID                 string
-	ProviderBaseURL          string
-	ProviderSharedSecret     string
-	ProviderMaxRetries       int
-	ProviderRetryBackoff     time.Duration
-	ArkAPIKey                string
-	ArkModels                []string
-	ArkBaseURL               string
-	RequestTimeout           time.Duration
-	ProviderTimeout          time.Duration
-	ReadinessTimeout         time.Duration
-	ReadinessCacheTTL        time.Duration
-	QueueTimeout             time.Duration
-	SSEHeartbeat             time.Duration
-	MaxConcurrentRuns        int
-	MaxHistoryTurns          int
-	MaxQuestionBytes         int
-	CozeLoopEnabled          bool
-	CozeLoopPromptKey        string
-	CozeLoopPromptVersion    string
-	CozeLoopPromptRefresh    time.Duration
-	CozeLoopPromptTimeout    time.Duration
-	Version                  string
-	Commit                   string
+	Address               string
+	SharedSecret          string
+	TenantID              string
+	ProviderBaseURL       string
+	ProviderSharedSecret  string
+	ProviderMaxRetries    int
+	ProviderRetryBackoff  time.Duration
+	ArkAPIKey             string
+	ArkModels             []string
+	ArkBaseURL            string
+	RequestTimeout        time.Duration
+	ProviderTimeout       time.Duration
+	ReadinessTimeout      time.Duration
+	ReadinessCacheTTL     time.Duration
+	QueueTimeout          time.Duration
+	SSEHeartbeat          time.Duration
+	MaxConcurrentRuns     int
+	MaxHistoryTurns       int
+	MaxQuestionBytes      int
+	CozeLoopEnabled       bool
+	CozeLoopPromptKey     string
+	CozeLoopPromptVersion string
+	CozeLoopPromptRefresh time.Duration
+	CozeLoopPromptTimeout time.Duration
+	Version               string
+	Commit                string
 }
 
 // Load reads configuration from environment variables.

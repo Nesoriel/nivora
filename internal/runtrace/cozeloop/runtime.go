@@ -85,14 +85,14 @@ func (t *tracer) Start(ctx context.Context, metadata runtrace.Metadata) (context
 	}
 	ctx, span := t.client.StartSpan(ctx, "nivora_support_run", "agent", nil)
 	span.SetTags(ctx, map[string]any{
-		"request_id":       metadata.RequestID,
-		"conversation_id":  metadata.ConversationID,
-		"tenant_id":        metadata.TenantID,
-		"nivora_version":   metadata.Version,
-		"nivora_commit":    metadata.Commit,
-		"prompt_version":   metadata.PromptVersion,
-		"prompt_source":    metadata.PromptSource,
-		"authenticated":    metadata.Authenticated,
+		"request_id":        metadata.RequestID,
+		"conversation_id":   metadata.ConversationID,
+		"tenant_id":         metadata.TenantID,
+		"nivora_version":    metadata.Version,
+		"nivora_commit":     metadata.Commit,
+		"prompt_version":    metadata.PromptVersion,
+		"prompt_source":     metadata.PromptSource,
+		"authenticated":     metadata.Authenticated,
 		"authorized_scopes": metadata.ScopeCount,
 		"authorized_tools":  metadata.ToolCount,
 	})
@@ -125,17 +125,17 @@ func (p *safeParser) ParseStreamOutput(ctx context.Context, info *callbacks.RunI
 }
 
 var allowedTraceTags = map[string]struct{}{
-	tracespec.ModelName:         {},
-	tracespec.ModelProvider:     {},
-	tracespec.InputTokens:       {},
-	tracespec.OutputTokens:      {},
-	tracespec.Tokens:            {},
-	tracespec.LatencyFirstResp:  {},
-	tracespec.Stream:            {},
-	tracespec.PromptKey:         {},
-	tracespec.PromptVersion:     {},
-	tracespec.PromptProvider:    {},
-	tracespec.ToolCallID:        {},
+	tracespec.ModelName:        {},
+	tracespec.ModelProvider:    {},
+	tracespec.InputTokens:      {},
+	tracespec.OutputTokens:     {},
+	tracespec.Tokens:           {},
+	tracespec.LatencyFirstResp: {},
+	tracespec.Stream:           {},
+	tracespec.PromptKey:        {},
+	tracespec.PromptVersion:    {},
+	tracespec.PromptProvider:   {},
+	tracespec.ToolCallID:       {},
 }
 
 func filterTags(tags map[string]any) map[string]any {
