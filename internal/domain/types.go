@@ -2,6 +2,23 @@ package domain
 
 import "time"
 
+const (
+	CapabilityKnowledgeSearch    = "knowledge.search"
+	CapabilityCustomerContextRead = "customer.context.read"
+	CapabilityResourceList       = "resource.list"
+	CapabilityResourceDiagnose   = "resource.diagnose"
+	CapabilityTransactionRead    = "transaction.read"
+	CapabilityCaseCreate         = "case.create"
+)
+
+const (
+	ScopeKnowledgeRead   = "knowledge:read"
+	ScopeCustomerRead    = "customer:read"
+	ScopeResourceRead    = "resource:read"
+	ScopeTransactionRead = "transaction:read"
+	ScopeCaseCreate      = "case:create"
+)
+
 // Brand describes the public identity used for a conversation.
 type Brand struct {
 	Key          string `json:"key"`
@@ -16,6 +33,14 @@ type TenantContext struct {
 	Brand Brand  `json:"brand"`
 }
 
+// Principal is the support-safe identity projection injected by a trusted BFF.
+// Nivora still forwards the opaque signed customer context to the Provider,
+// which remains responsible for authoritative authentication and authorization.
+type Principal struct {
+	Authenticated bool     `json:"authenticated"`
+	Scopes        []string `json:"scopes"`
+}
+
 // Turn is a compact conversation-history item.
 type Turn struct {
 	Role    string `json:"role"`
@@ -27,6 +52,7 @@ type ChatRequest struct {
 	Question       string        `json:"question"`
 	History        []Turn        `json:"history,omitempty"`
 	Tenant         TenantContext `json:"tenant"`
+	Principal      Principal     `json:"principal"`
 	ConversationID string        `json:"conversation_id,omitempty"`
 }
 
@@ -91,6 +117,7 @@ type CreateCaseInput struct {
 	Summary        string   `json:"summary"`
 	ResourceIDs    []string `json:"resource_ids,omitempty"`
 	Priority       string   `json:"priority,omitempty"`
+	IdempotencyKey string   `json:"-"`
 }
 
 // SupportCase is the provider response after a case is created.
