@@ -11,27 +11,32 @@ import (
 
 // Config contains the runtime configuration for Nivora.
 type Config struct {
-	Address              string
-	SharedSecret         string
-	TenantID             string
-	ProviderBaseURL      string
-	ProviderSharedSecret string
-	ProviderMaxRetries   int
-	ProviderRetryBackoff time.Duration
-	ArkAPIKey            string
-	ArkModels            []string
-	ArkBaseURL           string
-	RequestTimeout       time.Duration
-	ProviderTimeout      time.Duration
-	ReadinessTimeout     time.Duration
-	ReadinessCacheTTL    time.Duration
-	QueueTimeout         time.Duration
-	SSEHeartbeat         time.Duration
-	MaxConcurrentRuns    int
-	MaxHistoryTurns      int
-	MaxQuestionBytes     int
-	Version              string
-	Commit               string
+	Address               string
+	SharedSecret          string
+	TenantID              string
+	ProviderBaseURL       string
+	ProviderSharedSecret  string
+	ProviderMaxRetries    int
+	ProviderRetryBackoff  time.Duration
+	ArkAPIKey             string
+	ArkModels             []string
+	ArkBaseURL            string
+	RequestTimeout        time.Duration
+	ProviderTimeout       time.Duration
+	ReadinessTimeout      time.Duration
+	ReadinessCacheTTL     time.Duration
+	QueueTimeout          time.Duration
+	SSEHeartbeat          time.Duration
+	MaxConcurrentRuns     int
+	MaxHistoryTurns       int
+	MaxQuestionBytes      int
+	CozeLoopEnabled       bool
+	CozeLoopPromptKey     string
+	CozeLoopPromptVersion string
+	CozeLoopPromptRefresh time.Duration
+	CozeLoopPromptTimeout time.Duration
+	Version               string
+	Commit                string
 }
 
 // Load reads configuration from environment variables.
@@ -42,27 +47,32 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		Address:              env("NIVORA_ADDR", "127.0.0.1:3100"),
-		TenantID:             env("NIVORA_TENANT_ID", "lumio"),
-		ProviderBaseURL:      strings.TrimRight(env("NIVORA_PROVIDER_BASE_URL", "http://127.0.0.1:3000"), "/"),
-		ArkBaseURL:           strings.TrimRight(env("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"), "/"),
-		RequestTimeout:       durationEnv("NIVORA_REQUEST_TIMEOUT", 90*time.Second),
-		ProviderTimeout:      durationEnv("NIVORA_PROVIDER_TIMEOUT", 10*time.Second),
-		ReadinessTimeout:     durationEnv("NIVORA_READINESS_TIMEOUT", 2*time.Second),
-		ReadinessCacheTTL:    durationEnv("NIVORA_READINESS_CACHE_TTL", 10*time.Second),
-		QueueTimeout:         durationEnv("NIVORA_QUEUE_TIMEOUT", 2*time.Second),
-		SSEHeartbeat:         durationEnv("NIVORA_SSE_HEARTBEAT", 15*time.Second),
-		ProviderRetryBackoff: durationEnv("NIVORA_PROVIDER_RETRY_BACKOFF", 150*time.Millisecond),
-		ProviderMaxRetries:   intEnv("NIVORA_PROVIDER_MAX_RETRIES", 2),
-		MaxConcurrentRuns:    intEnv("NIVORA_MAX_CONCURRENT_RUNS", 4),
-		MaxHistoryTurns:      intEnv("NIVORA_MAX_HISTORY_TURNS", 12),
-		MaxQuestionBytes:     intEnv("NIVORA_MAX_QUESTION_BYTES", 16*1024),
-		SharedSecret:         strings.TrimSpace(os.Getenv("NIVORA_SHARED_SECRET")),
-		ProviderSharedSecret: strings.TrimSpace(os.Getenv("NIVORA_PROVIDER_SHARED_SECRET")),
-		ArkAPIKey:            strings.TrimSpace(os.Getenv("ARK_API_KEY")),
-		ArkModels:            models,
-		Version:              env("NIVORA_VERSION", "dev"),
-		Commit:               env("NIVORA_COMMIT", "unknown"),
+		Address:               env("NIVORA_ADDR", "127.0.0.1:3100"),
+		TenantID:              env("NIVORA_TENANT_ID", "lumio"),
+		ProviderBaseURL:       strings.TrimRight(env("NIVORA_PROVIDER_BASE_URL", "http://127.0.0.1:3000"), "/"),
+		ArkBaseURL:            strings.TrimRight(env("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"), "/"),
+		RequestTimeout:        durationEnv("NIVORA_REQUEST_TIMEOUT", 90*time.Second),
+		ProviderTimeout:       durationEnv("NIVORA_PROVIDER_TIMEOUT", 10*time.Second),
+		ReadinessTimeout:      durationEnv("NIVORA_READINESS_TIMEOUT", 2*time.Second),
+		ReadinessCacheTTL:     durationEnv("NIVORA_READINESS_CACHE_TTL", 10*time.Second),
+		QueueTimeout:          durationEnv("NIVORA_QUEUE_TIMEOUT", 2*time.Second),
+		SSEHeartbeat:          durationEnv("NIVORA_SSE_HEARTBEAT", 15*time.Second),
+		ProviderRetryBackoff:  durationEnv("NIVORA_PROVIDER_RETRY_BACKOFF", 150*time.Millisecond),
+		ProviderMaxRetries:    intEnv("NIVORA_PROVIDER_MAX_RETRIES", 2),
+		MaxConcurrentRuns:     intEnv("NIVORA_MAX_CONCURRENT_RUNS", 4),
+		MaxHistoryTurns:       intEnv("NIVORA_MAX_HISTORY_TURNS", 12),
+		MaxQuestionBytes:      intEnv("NIVORA_MAX_QUESTION_BYTES", 16*1024),
+		SharedSecret:          strings.TrimSpace(os.Getenv("NIVORA_SHARED_SECRET")),
+		ProviderSharedSecret:  strings.TrimSpace(os.Getenv("NIVORA_PROVIDER_SHARED_SECRET")),
+		ArkAPIKey:             strings.TrimSpace(os.Getenv("ARK_API_KEY")),
+		ArkModels:             models,
+		CozeLoopEnabled:       boolEnv("NIVORA_COZELOOP_ENABLED", false),
+		CozeLoopPromptKey:     strings.TrimSpace(os.Getenv("NIVORA_COZELOOP_PROMPT_KEY")),
+		CozeLoopPromptVersion: strings.TrimSpace(os.Getenv("NIVORA_COZELOOP_PROMPT_VERSION")),
+		CozeLoopPromptRefresh: durationEnv("NIVORA_COZELOOP_PROMPT_REFRESH", 5*time.Minute),
+		CozeLoopPromptTimeout: durationEnv("NIVORA_COZELOOP_PROMPT_TIMEOUT", 3*time.Second),
+		Version:               env("NIVORA_VERSION", "dev"),
+		Commit:                env("NIVORA_COMMIT", "unknown"),
 	}
 
 	if cfg.Address == "" {
@@ -86,11 +96,11 @@ func Load() (Config, error) {
 	if cfg.ProviderMaxRetries < 0 || cfg.ProviderMaxRetries > 10 {
 		return Config{}, errors.New("NIVORA_PROVIDER_MAX_RETRIES must be between 0 and 10")
 	}
-	if cfg.RequestTimeout <= 0 || cfg.ProviderTimeout <= 0 || cfg.ReadinessTimeout <= 0 {
-		return Config{}, errors.New("request, provider, and readiness timeouts must be positive")
+	if cfg.RequestTimeout <= 0 || cfg.ProviderTimeout <= 0 || cfg.ReadinessTimeout <= 0 || cfg.CozeLoopPromptTimeout <= 0 {
+		return Config{}, errors.New("request, provider, readiness, and CozeLoop prompt timeouts must be positive")
 	}
-	if cfg.ReadinessCacheTTL < 0 || cfg.QueueTimeout < 0 || cfg.SSEHeartbeat < 0 || cfg.ProviderRetryBackoff < 0 {
-		return Config{}, fmt.Errorf("cache, queue, heartbeat, and retry durations must not be negative")
+	if cfg.ReadinessCacheTTL < 0 || cfg.QueueTimeout < 0 || cfg.SSEHeartbeat < 0 || cfg.ProviderRetryBackoff < 0 || cfg.CozeLoopPromptRefresh < 0 {
+		return Config{}, fmt.Errorf("cache, queue, heartbeat, retry, and prompt refresh durations must not be negative")
 	}
 	return cfg, nil
 }
@@ -113,6 +123,18 @@ func intEnv(name string, fallback int) int {
 		return fallback
 	}
 	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return fallback
+	}
+	return value
+}
+
+func boolEnv(name string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.ParseBool(raw)
 	if err != nil {
 		return fallback
 	}
