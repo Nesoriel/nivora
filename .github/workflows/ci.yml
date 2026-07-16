@@ -6,50 +6,36 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
           cache: false
       - name: Resolve modules
         run: go mod tidy
-      - name: Export module lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: go-module-lock
-          path: go.sum
+      - name: Commit resolved module lockfile
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if ! git diff --quiet -- go.mod go.sum; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add go.mod go.sum
+            git commit -m "build: add Go module lockfile"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
       - name: Vet
-        id: vet
-        continue-on-error: true
-        run: go vet ./... 2>&1 | tee vet.log
+        run: go vet ./...
       - name: Test
-        id: test
-        continue-on-error: true
-        run: go test -race ./... 2>&1 | tee test.log
+        run: go test -race ./...
       - name: Build
-        id: build
-        continue-on-error: true
-        run: go build -trimpath ./cmd/nivora 2>&1 | tee build.log
-      - name: Upload diagnostics
-        if: steps.vet.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-diagnostics
-          path: |
-            vet.log
-            test.log
-            build.log
-            go.mod
-            go.sum
-          if-no-files-found: ignore
-      - name: Fail when validation failed
-        if: steps.vet.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
-        run: exit 1
+        run: go build -trimpath ./cmd/nivora
