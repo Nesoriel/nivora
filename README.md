@@ -12,16 +12,19 @@ Lumio is the first planned provider integration, but Nivora itself does not know
 
 - Eino `ChatModelAgent` with Volcengine Ark through the official `eino-ext` adapter
 - ordered Ark endpoint failover before streaming begins
+- optional CozeLoop tracing and PromptHub policy versions with strict trace redaction and bundled fallback
 - capability- and scope-driven Tool registration
 - provider-neutral Tools for knowledge, customer context, resources, diagnosis, transactions, and human-support cases
+- Provider-side approved-knowledge reference service using the official Eino VikingDB retriever
+- tenant, approval, freshness, provenance, and score validation after semantic retrieval
+- black-box customer-support and knowledge-retrieval JSONL evaluation tools
 - bounded Provider retries for idempotent reads and idempotent support-case creation
 - stable Server-Sent Events protocol with heartbeat comments
 - private service authentication between the product BFF and Nivora
 - real Provider readiness checks with short caching
 - global concurrency and queue protection
 - Prometheus-compatible runtime metrics
-- black-box JSONL regression evaluation for answers, Tool use, latency, and refusal behavior
-- loopback-first production deployment example
+- loopback-first production deployment examples
 
 ## Architecture
 
@@ -30,10 +33,12 @@ Browser
   -> Product BFF (session, tenant, brand, scopes, rate limit)
      -> Nivora :3100 (Eino runtime, private)
         -> Product Provider API (authorization and business truth)
-           -> Product services and database / approved knowledge service
+           -> Product services and database
+           -> approved knowledge service :3110
+              -> VikingDB
 ```
 
-Nivora does not accept a Provider URL from chat requests and does not connect to a product database. The configured Provider remains the source of truth.
+Nivora does not accept a Provider URL from chat requests and does not connect to a product database or VikingDB. The configured Provider remains the source of truth.
 
 ## Run locally
 
@@ -93,9 +98,9 @@ Tool results are not forwarded to the browser. They remain inside the Agent run.
 
 ## Security boundary
 
-- Bind Nivora to `127.0.0.1` or a private VPC address.
-- Do not expose port `3100` through a public reverse proxy.
-- Use separate secrets for product-to-Nivora and Nivora-to-Provider authentication.
+- Bind Nivora and its reference services to loopback or private VPC addresses.
+- Do not expose ports `3100` or `3110` through a public reverse proxy.
+- Use separate secrets for product-to-Nivora, Nivora-to-Provider, and Provider-to-knowledge authentication.
 - The Provider API must enforce customer ownership and redact internal fields.
 - Anonymous requests can receive only explicitly granted knowledge and case scopes.
 - Nivora currently performs read operations plus idempotent `case.create` only.
@@ -104,6 +109,8 @@ Tool results are not forwarded to the browser. They remain inside the Agent run.
 
 - [Runtime API v1](docs/runtime-api.md)
 - [Provider API v1](docs/provider-api.md)
+- [CozeLoop integration](docs/cozeloop.md)
+- [Approved VikingDB knowledge](docs/approved-knowledge.md)
 - [Customer-support evaluation](docs/evaluation.md)
 - [Volcengine production stack](docs/volcengine-production-stack.md)
 
@@ -115,12 +122,12 @@ make test
 make vet
 make build
 make eval
+make knowledge
+make knowledge-eval
 ```
 
 ## Roadmap
 
-1. Integrate CozeLoop tracing, prompt versioning, token accounting, and evaluator scores with strict redaction.
-2. Build a Provider-backed knowledge pipeline that can use VikingDB for approved semantic retrieval.
-3. Add durable conversations, audit logs, and support cases in Nivora's own storage.
-4. Add shadow and canary modes for safe production rollout.
-5. Add Eino interrupt/resume for human approval of future high-risk actions.
+1. Add durable conversations, audit logs, and support cases in Nivora's own storage.
+2. Add the production security, load, and shadow-traffic acceptance suite.
+3. Add Eino interrupt/resume for human approval of future high-risk actions.
