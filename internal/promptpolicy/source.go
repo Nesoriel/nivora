@@ -31,8 +31,8 @@ type Source interface {
 
 // PromptClient is the narrow CozeLoop PromptHub surface used by Nivora.
 type PromptClient interface {
-	GetPrompt(context.Context, cozeloopgo.GetPromptParam) (*entity.Prompt, error)
-	PromptFormat(context.Context, *entity.Prompt, map[string]any) ([]*entity.Message, error)
+	GetPrompt(context.Context, cozeloopgo.GetPromptParam, ...cozeloopgo.GetPromptOption) (*entity.Prompt, error)
+	PromptFormat(context.Context, *entity.Prompt, map[string]any, ...cozeloopgo.PromptFormatOption) ([]*entity.Message, error)
 }
 
 type staticSource struct {
