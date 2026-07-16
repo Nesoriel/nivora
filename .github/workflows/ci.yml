@@ -40,8 +40,28 @@ jobs:
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
       - name: Vet
-        run: go vet ./...
+        id: vet
+        continue-on-error: true
+        run: go vet ./... > vet.log 2>&1
       - name: Test
-        run: go test -race ./...
+        id: test
+        continue-on-error: true
+        run: go test -race ./... > test.log 2>&1
       - name: Build
-        run: go build -trimpath ./...
+        id: build
+        continue-on-error: true
+        run: go build -trimpath ./... > build.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cozeloop-validation-diagnostics
+          path: |
+            vet.log
+            test.log
+            build.log
+      - name: Fail when validation failed
+        if: steps.vet.outcome != 'success' || steps.test.outcome != 'success' || steps.build.outcome != 'success'
+        run: |
+          cat vet.log test.log build.log
+          exit 1
