@@ -20,6 +20,7 @@ Lumio is the first planned provider integration, but Nivora itself does not know
 - real Provider readiness checks with short caching
 - global concurrency and queue protection
 - Prometheus-compatible runtime metrics
+- black-box JSONL regression evaluation for answers, Tool use, latency, and refusal behavior
 - loopback-first production deployment example
 
 ## Architecture
@@ -103,6 +104,7 @@ Tool results are not forwarded to the browser. They remain inside the Agent run.
 
 - [Runtime API v1](docs/runtime-api.md)
 - [Provider API v1](docs/provider-api.md)
+- [Customer-support evaluation](docs/evaluation.md)
 - [Volcengine production stack](docs/volcengine-production-stack.md)
 
 ## Development
@@ -112,11 +114,12 @@ make fmt
 make test
 make vet
 make build
+make eval
 ```
 
 ## Roadmap
 
-1. Integrate CozeLoop tracing, prompt versioning, and offline evaluation with strict redaction.
+1. Integrate CozeLoop tracing, prompt versioning, token accounting, and evaluator scores with strict redaction.
 2. Build a Provider-backed knowledge pipeline that can use VikingDB for approved semantic retrieval.
 3. Add durable conversations, audit logs, and support cases in Nivora's own storage.
 4. Add shadow and canary modes for safe production rollout.
