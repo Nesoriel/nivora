@@ -1,5 +1,7 @@
 # Nivora
 
+English | [简体中文](README_zh.md)
+
 Nivora is a reusable, tenant-aware customer-support agent runtime written in Go. It uses Eino for agent orchestration and keeps product data behind a versioned Provider API.
 
 Lumio is the first provider integration, but Nivora itself does not know about Lumio tables, NextAuth, credits, generation pipelines, or SQLite.
