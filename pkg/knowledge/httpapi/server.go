@@ -13,24 +13,6 @@ import (
 
 const maxBodyBytes = 64 * 1024
 
-// Searcher is implemented by the approved knowledge service.
-type Searcher interface {
-	Search(ctx interface{ Done() <-chan struct{} }, query knowledge.Query) ([]knowledge.Item, error)
-}
-
-// KnowledgeSearcher uses the concrete context-aware service signature.
-type KnowledgeSearcher interface {
-	Search(ctxContext, knowledge.Query) ([]knowledge.Item, error)
-}
-
-// ctxContext is the minimal context surface accepted by KnowledgeSearcher.
-type ctxContext interface {
-	Deadline() (time.Time, bool)
-	Done() <-chan struct{}
-	Err() error
-	Value(key any) any
-}
-
 // Server exposes the private Provider-side knowledge API.
 type Server struct {
 	service *knowledge.Service
