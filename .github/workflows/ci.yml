@@ -6,33 +6,17 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
-          cache: false
-      - name: Resolve CozeLoop dependencies and formatting once
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          go get github.com/cloudwego/eino-ext/callbacks/cozeloop@latest
-          go get github.com/coze-dev/cozeloop-go@latest
-          go mod tidy
-          gofmt -w .
-          if ! git diff --quiet; then
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git add go.mod go.sum -- '*.go'
-            git commit -m "build: add CozeLoop integration dependencies"
-            git push origin HEAD:${{ github.head_ref }}
-          fi
+          cache: true
       - name: Verify module files
         run: |
           go mod tidy
@@ -40,28 +24,8 @@ jobs:
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
       - name: Vet
-        id: vet
-        continue-on-error: true
-        run: go vet ./... > vet.log 2>&1
+        run: go vet ./...
       - name: Test
-        id: test
-        continue-on-error: true
-        run: go test -race ./... > test.log 2>&1
+        run: go test -race ./...
       - name: Build
-        id: build
-        continue-on-error: true
-        run: go build -trimpath ./... > build.log 2>&1
-      - name: Upload diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cozeloop-validation-diagnostics
-          path: |
-            vet.log
-            test.log
-            build.log
-      - name: Fail when validation failed
-        if: steps.vet.outcome != 'success' || steps.test.outcome != 'success' || steps.build.outcome != 'success'
-        run: |
-          cat vet.log test.log build.log
-          exit 1
+        run: go build -trimpath ./...
