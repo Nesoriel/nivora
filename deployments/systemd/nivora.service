@@ -1,0 +1,25 @@
+[Unit]
+Description=Nivora reusable customer-support agent runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nivora
+Group=nivora
+WorkingDirectory=/opt/nivora/current
+EnvironmentFile=/etc/nivora/nivora.env
+ExecStart=/opt/nivora/current/nivora
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/nivora /var/log/nivora
+MemoryMax=512M
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
