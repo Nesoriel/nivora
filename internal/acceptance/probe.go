@@ -14,17 +14,17 @@ import (
 
 // ProbeCase is one deterministic HTTP security or protocol scenario.
 type ProbeCase struct {
-	ID                 string            `json:"id"`
-	Method             string            `json:"method,omitempty"`
-	Path               string            `json:"path"`
-	ServiceKey         string            `json:"service_key,omitempty"`
-	Bearer             string            `json:"bearer,omitempty"`
-	Headers            map[string]string `json:"headers,omitempty"`
-	Body               json.RawMessage   `json:"body,omitempty"`
-	ExpectedStatus     int               `json:"expected_status"`
-	RequiredSubstrings []string          `json:"required_substrings,omitempty"`
-	ForbiddenSubstrings []string         `json:"forbidden_substrings,omitempty"`
-	MaximumLatencyMS   int64             `json:"maximum_latency_ms,omitempty"`
+	ID                  string            `json:"id"`
+	Method              string            `json:"method,omitempty"`
+	Path                string            `json:"path"`
+	ServiceKey          string            `json:"service_key,omitempty"`
+	Bearer              string            `json:"bearer,omitempty"`
+	Headers             map[string]string `json:"headers,omitempty"`
+	Body                json.RawMessage   `json:"body,omitempty"`
+	ExpectedStatus      int               `json:"expected_status"`
+	RequiredSubstrings  []string          `json:"required_substrings,omitempty"`
+	ForbiddenSubstrings []string          `json:"forbidden_substrings,omitempty"`
+	MaximumLatencyMS    int64             `json:"maximum_latency_ms,omitempty"`
 }
 
 // ProbeResult is JSONL-friendly and contains no configured secrets.

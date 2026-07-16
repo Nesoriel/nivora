@@ -15,17 +15,17 @@ type LoadSample struct {
 
 // LoadSummary is the stable machine-readable load result.
 type LoadSummary struct {
-	Requests             int            `json:"requests"`
-	Successful           int            `json:"successful"`
-	Failed               int            `json:"failed"`
-	SuccessRate          float64        `json:"success_rate"`
-	FirstTokenP50MS      int64          `json:"first_token_p50_ms"`
-	FirstTokenP95MS      int64          `json:"first_token_p95_ms"`
-	FirstTokenP99MS      int64          `json:"first_token_p99_ms"`
-	CompletionP50MS      int64          `json:"completion_p50_ms"`
-	CompletionP95MS      int64          `json:"completion_p95_ms"`
-	CompletionP99MS      int64          `json:"completion_p99_ms"`
-	Errors               map[string]int `json:"errors,omitempty"`
+	Requests        int            `json:"requests"`
+	Successful      int            `json:"successful"`
+	Failed          int            `json:"failed"`
+	SuccessRate     float64        `json:"success_rate"`
+	FirstTokenP50MS int64          `json:"first_token_p50_ms"`
+	FirstTokenP95MS int64          `json:"first_token_p95_ms"`
+	FirstTokenP99MS int64          `json:"first_token_p99_ms"`
+	CompletionP50MS int64          `json:"completion_p50_ms"`
+	CompletionP95MS int64          `json:"completion_p95_ms"`
+	CompletionP99MS int64          `json:"completion_p99_ms"`
+	Errors          map[string]int `json:"errors,omitempty"`
 }
 
 // SummarizeLoad calculates stable nearest-rank percentiles.
@@ -72,7 +72,7 @@ func percentile(values []time.Duration, quantile float64) time.Duration {
 	}
 	copyValues := append([]time.Duration(nil), values...)
 	sort.Slice(copyValues, func(i, j int) bool { return copyValues[i] < copyValues[j] })
-	index := int(float64(len(copyValues))*quantile + 0.999999999) - 1
+	index := int(float64(len(copyValues))*quantile+0.999999999) - 1
 	if index < 0 {
 		index = 0
 	}

@@ -10,24 +10,24 @@ import (
 
 // ShadowResult compares externally observable baseline and candidate behavior.
 type ShadowResult struct {
-	ID                    string      `json:"id"`
-	CandidatePassed       bool        `json:"candidate_passed"`
-	CandidateFailures     []string    `json:"candidate_failures,omitempty"`
-	BaselineCompleted     bool        `json:"baseline_completed"`
-	CandidateCompleted    bool        `json:"candidate_completed"`
-	BaselineErrorCode     string      `json:"baseline_error_code,omitempty"`
-	CandidateErrorCode    string      `json:"candidate_error_code,omitempty"`
-	BaselineAnswerSHA256  string      `json:"baseline_answer_sha256"`
-	CandidateAnswerSHA256 string      `json:"candidate_answer_sha256"`
-	BaselineAnswerBytes   int         `json:"baseline_answer_bytes"`
-	CandidateAnswerBytes  int         `json:"candidate_answer_bytes"`
-	BaselineTools         []string    `json:"baseline_tools,omitempty"`
-	CandidateTools        []string    `json:"candidate_tools,omitempty"`
-	ToolSetsEqual         bool        `json:"tool_sets_equal"`
-	BaselineFirstTokenMS  int64       `json:"baseline_first_token_ms"`
-	CandidateFirstTokenMS int64       `json:"candidate_first_token_ms"`
-	BaselineDurationMS    int64       `json:"baseline_duration_ms"`
-	CandidateDurationMS   int64       `json:"candidate_duration_ms"`
+	ID                    string   `json:"id"`
+	CandidatePassed       bool     `json:"candidate_passed"`
+	CandidateFailures     []string `json:"candidate_failures,omitempty"`
+	BaselineCompleted     bool     `json:"baseline_completed"`
+	CandidateCompleted    bool     `json:"candidate_completed"`
+	BaselineErrorCode     string   `json:"baseline_error_code,omitempty"`
+	CandidateErrorCode    string   `json:"candidate_error_code,omitempty"`
+	BaselineAnswerSHA256  string   `json:"baseline_answer_sha256"`
+	CandidateAnswerSHA256 string   `json:"candidate_answer_sha256"`
+	BaselineAnswerBytes   int      `json:"baseline_answer_bytes"`
+	CandidateAnswerBytes  int      `json:"candidate_answer_bytes"`
+	BaselineTools         []string `json:"baseline_tools,omitempty"`
+	CandidateTools        []string `json:"candidate_tools,omitempty"`
+	ToolSetsEqual         bool     `json:"tool_sets_equal"`
+	BaselineFirstTokenMS  int64    `json:"baseline_first_token_ms"`
+	CandidateFirstTokenMS int64    `json:"candidate_first_token_ms"`
+	BaselineDurationMS    int64    `json:"baseline_duration_ms"`
+	CandidateDurationMS   int64    `json:"candidate_duration_ms"`
 }
 
 // CompareShadow evaluates the candidate against deterministic expectations and
