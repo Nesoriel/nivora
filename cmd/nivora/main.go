@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,7 +16,10 @@ import (
 	"github.com/Nesoriel/nivora/internal/agent"
 	"github.com/Nesoriel/nivora/internal/config"
 	"github.com/Nesoriel/nivora/internal/model/failover"
+	"github.com/Nesoriel/nivora/internal/promptpolicy"
 	providerhttp "github.com/Nesoriel/nivora/internal/provider/httpclient"
+	"github.com/Nesoriel/nivora/internal/requestctx"
+	looptrace "github.com/Nesoriel/nivora/internal/runtrace/cozeloop"
 	"github.com/Nesoriel/nivora/internal/telemetry"
 	"github.com/Nesoriel/nivora/internal/transport/httpserver"
 )
@@ -26,6 +30,29 @@ func main() {
 	if err != nil {
 		logger.Error("load configuration", "error", err)
 		os.Exit(1)
+	}
+
+	loopRuntime, loopErr := looptrace.New(cfg.CozeLoopEnabled, logger)
+	if loopErr != nil {
+		logger.Warn("CozeLoop initialization failed; tracing and remote prompts are disabled", "error", loopErr)
+		loopRuntime = looptrace.Disabled(logger)
+	}
+
+	var policy promptpolicy.Source = promptpolicy.Static("", "bundled-v1", "bundled")
+	if loopRuntime.Client() != nil && cfg.CozeLoopPromptKey != "" {
+		remotePolicy, promptErr := promptpolicy.Remote(context.Background(), loopRuntime.Client(), promptpolicy.RemoteConfig{
+			Key:             cfg.CozeLoopPromptKey,
+			Version:         cfg.CozeLoopPromptVersion,
+			RefreshInterval: cfg.CozeLoopPromptRefresh,
+			RequestTimeout:  cfg.CozeLoopPromptTimeout,
+			Fallback:        policy,
+			Logger:          logger,
+		})
+		if promptErr != nil {
+			logger.Warn("create CozeLoop prompt policy source", "error", promptErr)
+		} else {
+			policy = remotePolicy
+		}
 	}
 
 	providerClient, err := providerhttp.New(
@@ -65,7 +92,13 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		runtime, err = agent.New(runtimeModel, providerClient)
+		runtime, err = agent.New(
+			runtimeModel,
+			providerClient,
+			agent.WithPolicySource(policy),
+			agent.WithTracer(loopRuntime.Tracer()),
+			agent.WithBuildInfo(cfg.Version, cfg.Commit),
+		)
 		if err != nil {
 			logger.Error("create agent runtime", "error", err)
 			os.Exit(1)
@@ -77,9 +110,24 @@ func main() {
 
 	metrics := telemetry.New()
 	transport := httpserver.New(cfg, runtime, providerClient, metrics, logger)
+	root := http.NewServeMux()
+	root.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) {
+		snapshot := policy.Current()
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"version":          cfg.Version,
+			"commit":           cfg.Commit,
+			"prompt_key":       cfg.CozeLoopPromptKey,
+			"prompt_version":   snapshot.Version,
+			"prompt_source":    snapshot.Source,
+			"cozeloop_enabled": cfg.CozeLoopEnabled && loopRuntime.Client() != nil,
+		})
+	})
+	root.Handle("/", requestctx.Middleware(transport.Handler()))
+
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           transport.Handler(),
+		Handler:           root,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -102,5 +150,7 @@ func main() {
 		logger.Error("graceful shutdown failed", "error", err)
 		os.Exit(1)
 	}
+	policy.Close()
+	loopRuntime.Close(ctx)
 	logger.Info("Nivora stopped")
 }
