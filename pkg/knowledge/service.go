@@ -13,18 +13,37 @@ const (
 	maxLimit     = 20
 )
 
+// Option configures the approved knowledge service.
+type Option func(*Service)
+
+// WithMinimumScore establishes a floor that callers cannot lower.
+func WithMinimumScore(score float64) Option {
+	return func(service *Service) {
+		if score > 0 {
+			service.minimumScore = score
+		}
+	}
+}
+
 // Service applies the mandatory trust boundary after backend retrieval.
 type Service struct {
-	backend Backend
-	now     func() time.Time
+	backend      Backend
+	now          func() time.Time
+	minimumScore float64
 }
 
 // NewService creates an approved-knowledge service.
-func NewService(backend Backend) (*Service, error) {
+func NewService(backend Backend, options ...Option) (*Service, error) {
 	if backend == nil {
 		return nil, errors.New("knowledge backend is required")
 	}
-	return &Service{backend: backend, now: time.Now}, nil
+	service := &Service{backend: backend, now: time.Now}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service, nil
 }
 
 // Search returns only current, approved, same-tenant chunks with complete
@@ -43,6 +62,9 @@ func (s *Service) Search(ctx context.Context, query Query) ([]Item, error) {
 	}
 	if query.Limit > maxLimit {
 		query.Limit = maxLimit
+	}
+	if query.MinScore < s.minimumScore {
+		query.MinScore = s.minimumScore
 	}
 	if query.MinScore < 0 {
 		query.MinScore = 0
