@@ -3,12 +3,12 @@ package domain
 import "time"
 
 const (
-	CapabilityKnowledgeSearch    = "knowledge.search"
+	CapabilityKnowledgeSearch     = "knowledge.search"
 	CapabilityCustomerContextRead = "customer.context.read"
-	CapabilityResourceList       = "resource.list"
-	CapabilityResourceDiagnose   = "resource.diagnose"
-	CapabilityTransactionRead    = "transaction.read"
-	CapabilityCaseCreate         = "case.create"
+	CapabilityResourceList        = "resource.list"
+	CapabilityResourceDiagnose    = "resource.diagnose"
+	CapabilityTransactionRead     = "transaction.read"
+	CapabilityCaseCreate          = "case.create"
 )
 
 const (
