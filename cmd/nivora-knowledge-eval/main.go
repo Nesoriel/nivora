@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -42,7 +41,6 @@ func main() {
 	if err != nil {
 		fatalf("create result writer: %v", err)
 	}
-	defer closeWriter()
 	encoder := json.NewEncoder(writer)
 	client := &http.Client{Timeout: *requestTimeout}
 	failed := 0
@@ -53,8 +51,12 @@ func main() {
 			failed++
 		}
 		if err := encoder.Encode(result); err != nil {
+			_ = closeWriter()
 			fatalf("write result: %v", err)
 		}
+	}
+	if err := closeWriter(); err != nil {
+		fatalf("close result writer: %v", err)
 	}
 	if failed > 0 {
 		fmt.Fprintf(os.Stderr, "%d of %d knowledge evaluation cases failed\n", failed, len(cases))
@@ -99,19 +101,15 @@ func runCase(parent context.Context, client *http.Client, baseURL, secret string
 	return knowledgeeval.Observation{Items: body.Items, Duration: duration}
 }
 
-func resultWriter(path string) (io.Writer, func(), error) {
+func resultWriter(path string) (io.Writer, func() error, error) {
 	if strings.TrimSpace(path) == "" {
-		return bufio.NewWriter(os.Stdout), func() {}, nil
+		return os.Stdout, func() error { return nil }, nil
 	}
 	file, err := os.Create(path)
 	if err != nil {
-		return nil, func() {}, err
+		return nil, func() error { return nil }, err
 	}
-	buffer := bufio.NewWriter(file)
-	return buffer, func() {
-		_ = buffer.Flush()
-		_ = file.Close()
-	}, nil
+	return file, file.Close, nil
 }
 
 func env(name, fallback string) string {
