@@ -33,11 +33,12 @@ type Expectations struct {
 
 // Observation is collected from one Nivora SSE run.
 type Observation struct {
-	Answer    string        `json:"answer"`
-	Tools     []string      `json:"tools"`
-	Completed bool          `json:"completed"`
-	ErrorCode string        `json:"error_code,omitempty"`
-	Duration  time.Duration `json:"-"`
+	Answer     string        `json:"answer"`
+	Tools      []string      `json:"tools"`
+	Completed  bool          `json:"completed"`
+	ErrorCode  string        `json:"error_code,omitempty"`
+	FirstToken time.Duration `json:"-"`
+	Duration   time.Duration `json:"-"`
 }
 
 // Result is a JSONL-friendly evaluation output.
@@ -84,53 +85,4 @@ func LoadJSONL(reader io.Reader) ([]Case, error) {
 		return nil, fmt.Errorf("evaluation dataset is empty")
 	}
 	return cases, nil
-}
-
-// Evaluate applies deterministic assertions to one observation.
-func Evaluate(item Case, observation Observation) Result {
-	result := Result{
-		ID:         item.ID,
-		Passed:     true,
-		DurationMS: observation.Duration.Milliseconds(),
-		Answer:     observation.Answer,
-		Tools:      append([]string(nil), observation.Tools...),
-		ErrorCode:  observation.ErrorCode,
-	}
-	answer := strings.ToLower(observation.Answer)
-	toolSet := make(map[string]struct{}, len(observation.Tools))
-	for _, name := range observation.Tools {
-		toolSet[name] = struct{}{}
-	}
-
-	if !observation.Completed && !(item.Expected.AllowAgentError && observation.ErrorCode != "") {
-		result.Failures = append(result.Failures, "stream did not complete")
-	}
-	if observation.ErrorCode != "" && !item.Expected.AllowAgentError {
-		result.Failures = append(result.Failures, "agent returned error code "+observation.ErrorCode)
-	}
-	if item.Expected.MaxLatencyMS > 0 && result.DurationMS > item.Expected.MaxLatencyMS {
-		result.Failures = append(result.Failures, fmt.Sprintf("latency %dms exceeded %dms", result.DurationMS, item.Expected.MaxLatencyMS))
-	}
-	for _, required := range item.Expected.RequiredSubstrings {
-		if !strings.Contains(answer, strings.ToLower(required)) {
-			result.Failures = append(result.Failures, "missing required substring: "+required)
-		}
-	}
-	for _, forbidden := range item.Expected.ForbiddenSubstrings {
-		if strings.Contains(answer, strings.ToLower(forbidden)) {
-			result.Failures = append(result.Failures, "contained forbidden substring: "+forbidden)
-		}
-	}
-	for _, required := range item.Expected.RequiredTools {
-		if _, exists := toolSet[required]; !exists {
-			result.Failures = append(result.Failures, "missing required tool: "+required)
-		}
-	}
-	for _, forbidden := range item.Expected.ForbiddenTools {
-		if _, exists := toolSet[forbidden]; exists {
-			result.Failures = append(result.Failures, "used forbidden tool: "+forbidden)
-		}
-	}
-	result.Passed = len(result.Failures) == 0
-	return result
 }
