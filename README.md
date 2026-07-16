@@ -1,6 +1,6 @@
 # Nivora
 
-English | [简体中文](README_zh.md)
+English | [简体中文](README.zh-CN.md)
 
 Nivora is a reusable, tenant-aware customer-support agent runtime written in Go. It uses Eino for agent orchestration and keeps product data behind a versioned Provider API.
 
