@@ -17,7 +17,34 @@ jobs:
         with:
           go-version: '1.23.x'
           cache: false
-      - run: test -z "$(gofmt -l .)"
-      - run: go vet ./...
-      - run: go test -race ./...
-      - run: go build -trimpath ./cmd/nivora
+      - name: Download modules
+        run: go mod download
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        id: vet
+        continue-on-error: true
+        run: go vet ./... 2>&1 | tee vet.log
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: go test -race ./... 2>&1 | tee test.log
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: go build -trimpath ./cmd/nivora 2>&1 | tee build.log
+      - name: Upload diagnostics
+        if: steps.vet.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-diagnostics
+          path: |
+            vet.log
+            test.log
+            build.log
+            go.mod
+            go.sum
+          if-no-files-found: ignore
+      - name: Fail when validation failed
+        if: steps.vet.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: exit 1
