@@ -16,14 +16,14 @@ type fakePromptClient struct {
 	err      error
 }
 
-func (f *fakePromptClient) GetPrompt(context.Context, cozeloopgo.GetPromptParam) (*entity.Prompt, error) {
+func (f *fakePromptClient) GetPrompt(context.Context, cozeloopgo.GetPromptParam, ...cozeloopgo.GetPromptOption) (*entity.Prompt, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	return f.prompt, nil
 }
 
-func (f *fakePromptClient) PromptFormat(context.Context, *entity.Prompt, map[string]any) ([]*entity.Message, error) {
+func (f *fakePromptClient) PromptFormat(context.Context, *entity.Prompt, map[string]any, ...cozeloopgo.PromptFormatOption) ([]*entity.Message, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
