@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,18 +26,27 @@ func main() {
 	provider := testprovider.New(testprovider.Config{
 		SharedSecret: secret,
 		BearerToken:  bearer,
-		Delay:        durationEnv("NIVORA_TEST_PROVIDER_DELAY", 0),
+		Delay:        durationEnv("NIVORA_TEST_PROVIDER_RESPONSE_DELAY", 0),
+	})
+	handler := testprovider.WithFaults(provider.Handler(), testprovider.FaultConfig{
+		StatusCode: intEnv("NIVORA_TEST_PROVIDER_FAILURE_STATUS", 0),
+		Count:      int64(intEnv("NIVORA_TEST_PROVIDER_FAILURE_COUNT", 0)),
+		Delay:      durationEnv("NIVORA_TEST_PROVIDER_FAULT_DELAY", 0),
 	})
 	server := &http.Server{
 		Addr:              address,
-		Handler:           provider.Handler(),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		logger.Warn("synthetic Provider started; never use this service with production customer traffic", "address", address)
+		logger.Warn("synthetic Provider started; never use this service with production customer traffic",
+			"address", address,
+			"failure_status", intEnv("NIVORA_TEST_PROVIDER_FAILURE_STATUS", 0),
+			"failure_count", intEnv("NIVORA_TEST_PROVIDER_FAILURE_COUNT", 0),
+		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("synthetic Provider stopped unexpectedly", "error", err)
 			os.Exit(1)
@@ -54,6 +64,15 @@ func main() {
 func env(name, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 		return value
+	}
+	return fallback
+}
+
+func intEnv(name string, fallback int) int {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			return parsed
+		}
 	}
 	return fallback
 }
