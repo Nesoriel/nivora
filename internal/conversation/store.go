@@ -46,6 +46,16 @@ type ToolAuditRecord struct {
 	FinishedAt     time.Time
 }
 
+// SupportCaseRecord stores only the external reference needed for handoff.
+type SupportCaseRecord struct {
+	TenantID       string
+	ConversationID string
+	ProviderCaseID string
+	Status         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 // RunFinish records the externally observable result of one run.
 type RunFinish struct {
 	RequestID  string
@@ -56,10 +66,10 @@ type RunFinish struct {
 
 // RetentionResult reports restart-safe cleanup counts.
 type RetentionResult struct {
-	Runs         int64
-	Messages     int64
-	ToolAudits   int64
-	SupportCases int64
+	Runs          int64
+	Messages      int64
+	ToolAudits    int64
+	SupportCases  int64
 	Conversations int64
 }
 
@@ -70,6 +80,7 @@ type Store interface {
 	AppendMessage(context.Context, MessageRecord) error
 	ToolStarted(context.Context, ToolAuditRecord) error
 	ToolFinished(context.Context, ToolAuditRecord) error
+	RecordSupportCase(context.Context, SupportCaseRecord) error
 	FinishRun(context.Context, RunFinish) error
 	Transcript(context.Context, string, string) ([]MessageRecord, error)
 	DeleteBefore(context.Context, time.Time) (RetentionResult, error)
@@ -82,12 +93,13 @@ type nopStore struct{}
 // Nop returns a disabled store implementation.
 func Nop() Store { return nopStore{} }
 
-func (nopStore) BeginRun(context.Context, RunRecord) error                     { return nil }
-func (nopStore) AppendMessage(context.Context, MessageRecord) error             { return nil }
-func (nopStore) ToolStarted(context.Context, ToolAuditRecord) error              { return nil }
-func (nopStore) ToolFinished(context.Context, ToolAuditRecord) error             { return nil }
-func (nopStore) FinishRun(context.Context, RunFinish) error                      { return nil }
-func (nopStore) Transcript(context.Context, string, string) ([]MessageRecord, error) { return nil, nil }
-func (nopStore) DeleteBefore(context.Context, time.Time) (RetentionResult, error) { return RetentionResult{}, nil }
-func (nopStore) Check(context.Context) error                                     { return nil }
-func (nopStore) Close() error                                                    { return nil }
+func (nopStore) BeginRun(context.Context, RunRecord) error                         { return nil }
+func (nopStore) AppendMessage(context.Context, MessageRecord) error                 { return nil }
+func (nopStore) ToolStarted(context.Context, ToolAuditRecord) error                  { return nil }
+func (nopStore) ToolFinished(context.Context, ToolAuditRecord) error                 { return nil }
+func (nopStore) RecordSupportCase(context.Context, SupportCaseRecord) error           { return nil }
+func (nopStore) FinishRun(context.Context, RunFinish) error                          { return nil }
+func (nopStore) Transcript(context.Context, string, string) ([]MessageRecord, error)  { return nil, nil }
+func (nopStore) DeleteBefore(context.Context, time.Time) (RetentionResult, error)     { return RetentionResult{}, nil }
+func (nopStore) Check(context.Context) error                                         { return nil }
+func (nopStore) Close() error                                                        { return nil }
