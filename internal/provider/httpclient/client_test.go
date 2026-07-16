@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
+	"github.com/Nesoriel/nivora/internal/domain"
 	"github.com/Nesoriel/nivora/internal/provider"
 )
 
@@ -39,5 +41,59 @@ func TestSearchKnowledgeForwardsAuthAndDecodes(t *testing.T) {
 	}
 	if len(items) != 1 || items[0].ID != "kb-1" {
 		t.Fatalf("unexpected items: %#v", items)
+	}
+}
+
+func TestIdempotentProviderRequestRetriesTransientFailures(t *testing.T) {
+	t.Parallel()
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempt := attempts.Add(1)
+		if attempt < 3 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"items": []any{}})
+	}))
+	defer server.Close()
+
+	client, err := New(server.URL, "provider-secret", server.Client(), WithRetry(2, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.SearchKnowledge(context.Background(), provider.RequestAuth{}, "refund", 6); err != nil {
+		t.Fatal(err)
+	}
+	if got := attempts.Load(); got != 3 {
+		t.Fatalf("expected 3 attempts, got %d", got)
+	}
+}
+
+func TestCreateCaseIsNotRetriedAndSendsIdempotencyKey(t *testing.T) {
+	t.Parallel()
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		attempts.Add(1)
+		if got := request.Header.Get("Idempotency-Key"); got != "case-key" {
+			t.Fatalf("unexpected idempotency key: %q", got)
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client, err := New(server.URL, "provider-secret", server.Client(), WithRetry(3, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.CreateCase(context.Background(), provider.RequestAuth{}, domain.CreateCaseInput{
+		Subject:        "Need help",
+		Summary:        "A factual summary",
+		IdempotencyKey: "case-key",
+	})
+	if err == nil {
+		t.Fatal("expected provider error")
+	}
+	if got := attempts.Load(); got != 1 {
+		t.Fatalf("expected one POST attempt, got %d", got)
 	}
 }
