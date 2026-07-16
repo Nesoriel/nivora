@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-func TestSyntheticProviderRequiresBothSecrets(t *testing.T) {
+func TestSyntheticProviderRequiresBearerForCustomerContext(t *testing.T) {
 	server := New(Config{SharedSecret: "provider-secret", BearerToken: "context"})
-	request := httptest.NewRequest(http.MethodGet, "/api/internal/support/capabilities", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/internal/support/context", nil)
 	request.Header.Set("X-Nivora-Provider-Key", "provider-secret")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
@@ -18,12 +18,22 @@ func TestSyntheticProviderRequiresBothSecrets(t *testing.T) {
 	}
 }
 
+func TestSyntheticProviderAllowsAnonymousKnowledge(t *testing.T) {
+	server := New(Config{SharedSecret: "provider-secret", BearerToken: "context"})
+	request := httptest.NewRequest(http.MethodGet, "/api/internal/support/knowledge?q=help", nil)
+	request.Header.Set("X-Nivora-Provider-Key", "provider-secret")
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestSyntheticProviderCaseCreationIsIdempotent(t *testing.T) {
 	server := New(Config{SharedSecret: "provider-secret", BearerToken: "context"})
 	call := func() string {
 		request := httptest.NewRequest(http.MethodPost, "/api/internal/support/cases", bytes.NewBufferString(`{"conversation_id":"conv-1","subject":"help","summary":"verified"}`))
 		request.Header.Set("X-Nivora-Provider-Key", "provider-secret")
-		request.Header.Set("Authorization", "Bearer context")
 		request.Header.Set("Idempotency-Key", "stable-key")
 		response := httptest.NewRecorder()
 		server.Handler().ServeHTTP(response, request)
