@@ -33,11 +33,11 @@ type Expectations struct {
 
 // Observation is collected from one Nivora SSE run.
 type Observation struct {
-	Answer     string        `json:"answer"`
-	Tools      []string      `json:"tools"`
-	Completed  bool          `json:"completed"`
-	ErrorCode  string        `json:"error_code,omitempty"`
-	Duration   time.Duration `json:"-"`
+	Answer    string        `json:"answer"`
+	Tools     []string      `json:"tools"`
+	Completed bool          `json:"completed"`
+	ErrorCode string        `json:"error_code,omitempty"`
+	Duration  time.Duration `json:"-"`
 }
 
 // Result is a JSONL-friendly evaluation output.
