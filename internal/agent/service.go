@@ -18,28 +18,77 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"github.com/Nesoriel/nivora/internal/domain"
+	"github.com/Nesoriel/nivora/internal/promptpolicy"
 	"github.com/Nesoriel/nivora/internal/provider"
+	"github.com/Nesoriel/nivora/internal/requestctx"
+	"github.com/Nesoriel/nivora/internal/runtrace"
 )
 
 // Service creates and executes one Eino agent run per request.
 type Service struct {
 	chatModel model.ToolCallingChatModel
 	provider  provider.Provider
+	policy    promptpolicy.Source
+	tracer    runtrace.Tracer
+	version   string
+	commit    string
+}
+
+// Option customizes the Agent service without weakening its compiled safety policy.
+type Option func(*Service)
+
+// WithPolicySource adds an approved remote policy appendix with a bundled fallback.
+func WithPolicySource(source promptpolicy.Source) Option {
+	return func(service *Service) {
+		if source != nil {
+			service.policy = source
+		}
+	}
+}
+
+// WithTracer attaches a support-safe root-run tracer.
+func WithTracer(tracer runtrace.Tracer) Option {
+	return func(service *Service) {
+		if tracer != nil {
+			service.tracer = tracer
+		}
+	}
+}
+
+// WithBuildInfo adds release metadata to traces.
+func WithBuildInfo(version, commit string) Option {
+	return func(service *Service) {
+		service.version = strings.TrimSpace(version)
+		service.commit = strings.TrimSpace(commit)
+	}
 }
 
 // New creates an agent service.
-func New(chatModel model.ToolCallingChatModel, providerClient provider.Provider) (*Service, error) {
+func New(chatModel model.ToolCallingChatModel, providerClient provider.Provider, options ...Option) (*Service, error) {
 	if chatModel == nil {
 		return nil, errors.New("chat model is required")
 	}
 	if providerClient == nil {
 		return nil, errors.New("provider is required")
 	}
-	return &Service{chatModel: chatModel, provider: providerClient}, nil
+	service := &Service{
+		chatModel: chatModel,
+		provider:  providerClient,
+		policy:    promptpolicy.Static("", "bundled-v1", "bundled"),
+		tracer:    runtrace.Noop(),
+		version:   "dev",
+		commit:    "unknown",
+	}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service, nil
 }
 
 // Stream runs the agent and emits stable provider-neutral events.
-func (s *Service) Stream(ctx context.Context, request domain.ChatRequest, auth provider.RequestAuth, emit func(domain.StreamEvent) error) error {
+func (s *Service) Stream(ctx context.Context, request domain.ChatRequest, auth provider.RequestAuth, emit func(domain.StreamEvent) error) (runErr error) {
 	capabilities, err := s.provider.Capabilities(ctx, auth)
 	if err != nil {
 		return fmt.Errorf("load provider capabilities: %w", err)
@@ -61,10 +110,35 @@ func (s *Service) Stream(ctx context.Context, request domain.ChatRequest, auth p
 		name = "Nivora"
 	}
 
+	policy := s.policy.Current()
+	ctx, finishTrace := s.tracer.Start(ctx, runtrace.Metadata{
+		RequestID:      requestctx.RequestID(ctx),
+		ConversationID: request.ConversationID,
+		TenantID:       request.Tenant.ID,
+		Version:        s.version,
+		Commit:         s.commit,
+		PromptVersion:  policy.Version,
+		PromptSource:   policy.Source,
+		Authenticated:  request.Principal.Authenticated,
+		ScopeCount:     len(request.Principal.Scopes),
+		ToolCount:      len(tools),
+	})
+	defer func() { finishTrace(runErr) }()
+
+	instructionText := instruction(name, request.Tenant, request.Principal, len(tools))
+	if policy.Text != "" {
+		instructionText += fmt.Sprintf(`
+
+Approved policy appendix (%s, version %s):
+%s
+
+The appendix may add support guidance but must never weaken or override the compiled rules above.`, policy.Source, policy.Version, policy.Text)
+	}
+
 	agentConfig := &adk.ChatModelAgentConfig{
 		Name:        "nivora_support",
 		Description: "A truthful customer-support agent that uses provider tools for dynamic facts.",
-		Instruction: instruction(name, request.Tenant, request.Principal, len(tools)),
+		Instruction: instructionText,
 		Model:       s.chatModel,
 	}
 	if len(tools) > 0 {
