@@ -6,17 +6,30 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
           cache: true
+      - name: Apply acceptance formatting once
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          gofmt -w .
+          if ! git diff --quiet; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add -- '*.go'
+            git commit -m "style: format production acceptance suite"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
       - name: Verify module files
         run: |
           go mod tidy
