@@ -17,11 +17,13 @@ Lumio is the first planned provider integration, but Nivora itself does not know
 - provider-neutral Tools for knowledge, customer context, resources, diagnosis, transactions, and human-support cases
 - Provider-side approved-knowledge reference service using the official Eino VikingDB retriever
 - tenant, approval, freshness, provenance, and score validation after semantic retrieval
+- SQLite development and PostgreSQL production storage for public transcripts, run metadata, sanitized Tool audits, and support-case references
+- deterministic replay protection and tenant-scoped transcript access
 - black-box customer-support and knowledge-retrieval JSONL evaluation tools
 - bounded Provider retries for idempotent reads and idempotent support-case creation
 - stable Server-Sent Events protocol with heartbeat comments
 - private service authentication between the product BFF and Nivora
-- real Provider readiness checks with short caching
+- real Provider and storage readiness checks with short caching
 - global concurrency and queue protection
 - Prometheus-compatible runtime metrics
 - loopback-first production deployment examples
@@ -32,13 +34,14 @@ Lumio is the first planned provider integration, but Nivora itself does not know
 Browser
   -> Product BFF (session, tenant, brand, scopes, rate limit)
      -> Nivora :3100 (Eino runtime, private)
+        -> Nivora conversation/audit database
         -> Product Provider API (authorization and business truth)
            -> Product services and database
            -> approved knowledge service :3110
               -> VikingDB
 ```
 
-Nivora does not accept a Provider URL from chat requests and does not connect to a product database or VikingDB. The configured Provider remains the source of truth.
+Nivora does not accept a Provider URL from chat requests and does not connect to a product business database or VikingDB. The configured Provider remains the source of truth.
 
 ## Run locally
 
@@ -54,6 +57,8 @@ Useful endpoints:
 curl http://127.0.0.1:3100/healthz
 curl -i http://127.0.0.1:3100/readyz
 curl http://127.0.0.1:3100/metrics
+curl -H 'X-Nivora-Key: replace-with-a-long-random-secret' \
+  http://127.0.0.1:3100/v1/conversations/conv-id/transcript
 ```
 
 Chat requests must come from a trusted BFF. The BFF must replace browser-supplied tenant and principal data with trusted server-side values.
@@ -103,6 +108,7 @@ Tool results are not forwarded to the browser. They remain inside the Agent run.
 - Use separate secrets for product-to-Nivora, Nivora-to-Provider, and Provider-to-knowledge authentication.
 - The Provider API must enforce customer ownership and redact internal fields.
 - Anonymous requests can receive only explicitly granted knowledge and case scopes.
+- Durable storage contains public messages and sanitized audit metadata only; it never stores chain of thought, bearer contexts, Tool payloads, or product recipes.
 - Nivora currently performs read operations plus idempotent `case.create` only.
 
 ## Documentation
@@ -111,6 +117,7 @@ Tool results are not forwarded to the browser. They remain inside the Agent run.
 - [Provider API v1](docs/provider-api.md)
 - [CozeLoop integration](docs/cozeloop.md)
 - [Approved VikingDB knowledge](docs/approved-knowledge.md)
+- [Durable conversation storage](docs/durable-storage.md)
 - [Customer-support evaluation](docs/evaluation.md)
 - [Volcengine production stack](docs/volcengine-production-stack.md)
 
@@ -128,6 +135,5 @@ make knowledge-eval
 
 ## Roadmap
 
-1. Add durable conversations, audit logs, and support cases in Nivora's own storage.
-2. Add the production security, load, and shadow-traffic acceptance suite.
-3. Add Eino interrupt/resume for human approval of future high-risk actions.
+1. Add the production security, load, and shadow-traffic acceptance suite.
+2. Add Eino interrupt/resume for human approval of future high-risk actions.
