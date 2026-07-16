@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -20,6 +21,7 @@ func main() {
 	sharedSecret := flag.String("key", os.Getenv("NIVORA_PROBE_SHARED_SECRET"), "Nivora internal service key")
 	bearerToken := flag.String("bearer", os.Getenv("NIVORA_PROBE_BEARER_TOKEN"), "valid short-lived Provider context")
 	timeout := flag.Duration("timeout", 10*time.Second, "timeout per probe")
+	outputPath := flag.String("output", "", "optional JSONL output path")
 	flag.Parse()
 
 	file, err := os.Open(*datasetPath)
@@ -37,7 +39,17 @@ func main() {
 		BearerToken:  *bearerToken,
 		HTTPClient:   &http.Client{},
 	}
-	writer := bufio.NewWriter(os.Stdout)
+	var output io.Writer = os.Stdout
+	var outputFile *os.File
+	if strings.TrimSpace(*outputPath) != "" {
+		outputFile, err = os.Create(*outputPath)
+		if err != nil {
+			fatalf("create probe output: %v", err)
+		}
+		defer outputFile.Close()
+		output = io.MultiWriter(os.Stdout, outputFile)
+	}
+	writer := bufio.NewWriter(output)
 	encoder := json.NewEncoder(writer)
 	failed := 0
 	for _, item := range cases {
