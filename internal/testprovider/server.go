@@ -47,7 +47,7 @@ func (s *Server) Handler() http.Handler {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
-		if s.config.BearerToken != "" {
+		if requiresBearer(request.URL.Path) && s.config.BearerToken != "" {
 			token := strings.TrimPrefix(request.Header.Get("Authorization"), "Bearer ")
 			if !constantTimeEqual(token, s.config.BearerToken) {
 				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_context"})
@@ -160,6 +160,18 @@ func (s *Server) createCase(w http.ResponseWriter, request *http.Request) {
 	}
 	s.cases[idempotencyKey] = caseRecord
 	writeJSON(w, http.StatusCreated, caseRecord)
+}
+
+func requiresBearer(path string) bool {
+	switch path {
+	case "/api/internal/support/context",
+		"/api/internal/support/resources",
+		"/api/internal/support/diagnosis",
+		"/api/internal/support/transactions":
+		return true
+	default:
+		return false
+	}
 }
 
 func queryLimit(request *http.Request, fallback int) int {
