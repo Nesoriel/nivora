@@ -93,13 +93,15 @@ type nopStore struct{}
 // Nop returns a disabled store implementation.
 func Nop() Store { return nopStore{} }
 
-func (nopStore) BeginRun(context.Context, RunRecord) error                         { return nil }
-func (nopStore) AppendMessage(context.Context, MessageRecord) error                 { return nil }
+func (nopStore) BeginRun(context.Context, RunRecord) error                           { return nil }
+func (nopStore) AppendMessage(context.Context, MessageRecord) error                  { return nil }
 func (nopStore) ToolStarted(context.Context, ToolAuditRecord) error                  { return nil }
 func (nopStore) ToolFinished(context.Context, ToolAuditRecord) error                 { return nil }
-func (nopStore) RecordSupportCase(context.Context, SupportCaseRecord) error           { return nil }
+func (nopStore) RecordSupportCase(context.Context, SupportCaseRecord) error          { return nil }
 func (nopStore) FinishRun(context.Context, RunFinish) error                          { return nil }
-func (nopStore) Transcript(context.Context, string, string) ([]MessageRecord, error)  { return nil, nil }
-func (nopStore) DeleteBefore(context.Context, time.Time) (RetentionResult, error)     { return RetentionResult{}, nil }
-func (nopStore) Check(context.Context) error                                         { return nil }
-func (nopStore) Close() error                                                        { return nil }
+func (nopStore) Transcript(context.Context, string, string) ([]MessageRecord, error) { return nil, nil }
+func (nopStore) DeleteBefore(context.Context, time.Time) (RetentionResult, error) {
+	return RetentionResult{}, nil
+}
+func (nopStore) Check(context.Context) error { return nil }
+func (nopStore) Close() error                { return nil }
