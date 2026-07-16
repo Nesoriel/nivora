@@ -15,7 +15,7 @@ func TestEvaluateDetectsMissingAndForbiddenDocuments(t *testing.T) {
 		MinimumResults:       1,
 		MaximumLatencyMS:     100,
 	}, Observation{
-		Items: []knowledge.Item{{DocumentID: "internal-recipe"}},
+		Items:    []knowledge.Item{{DocumentID: "internal-recipe"}},
 		Duration: 150 * time.Millisecond,
 	})
 	if result.Passed {
