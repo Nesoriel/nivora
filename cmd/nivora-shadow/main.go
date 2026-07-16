@@ -63,7 +63,7 @@ func main() {
 		if candidateErr != nil {
 			result.CandidatePassed = false
 			result.CandidateErrorCode = "request_error"
-			result.CandidateFailures = append(result.CandidateFailures, candidateErr.Error())
+			result.CandidateFailures = append(result.CandidateFailures, "candidate request failed")
 		}
 		if !result.CandidatePassed {
 			failed++
