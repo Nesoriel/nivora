@@ -127,13 +127,17 @@ type SupportCase struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// StreamEvent is Nivora's stable SSE protocol.
+// StreamEvent is Nivora's stable SSE protocol. Audit fields are intentionally
+// excluded from JSON so provider references can be persisted without widening
+// the browser-facing protocol.
 type StreamEvent struct {
-	Type           string `json:"type"`
-	RequestID      string `json:"request_id,omitempty"`
-	ConversationID string `json:"conversation_id,omitempty"`
-	Content        string `json:"content,omitempty"`
-	ToolName       string `json:"tool_name,omitempty"`
-	ToolCallID     string `json:"tool_call_id,omitempty"`
-	Code           string `json:"code,omitempty"`
+	Type             string `json:"type"`
+	RequestID        string `json:"request_id,omitempty"`
+	ConversationID   string `json:"conversation_id,omitempty"`
+	Content          string `json:"content,omitempty"`
+	ToolName         string `json:"tool_name,omitempty"`
+	ToolCallID       string `json:"tool_call_id,omitempty"`
+	Code             string `json:"code,omitempty"`
+	AuditReferenceID string `json:"-"`
+	AuditStatus      string `json:"-"`
 }
