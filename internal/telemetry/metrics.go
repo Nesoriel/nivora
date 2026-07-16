@@ -62,19 +62,20 @@ func (m *Metrics) ToolStarted(name string) {
 // compatible managed collector.
 func (m *Metrics) WritePrometheus(w io.Writer) error {
 	lines := []struct {
-		name  string
-		help  string
-		value int64
+		name       string
+		help       string
+		metricType string
+		value      int64
 	}{
-		{"nivora_agent_active_runs", "Current active agent runs.", m.activeRuns.Load()},
-		{"nivora_agent_runs_total", "Total accepted agent runs.", m.totalRuns.Load()},
-		{"nivora_agent_runs_success_total", "Agent runs that completed successfully.", m.successfulRuns.Load()},
-		{"nivora_agent_runs_failed_total", "Agent runs that failed.", m.failedRuns.Load()},
-		{"nivora_agent_queue_rejected_total", "Agent runs rejected by overload protection.", m.queueRejected.Load()},
-		{"nivora_readiness_failures_total", "Dependency readiness checks that failed.", m.readinessFailures.Load()},
+		{"nivora_agent_active_runs", "Current active agent runs.", "gauge", m.activeRuns.Load()},
+		{"nivora_agent_runs_total", "Total accepted agent runs.", "counter", m.totalRuns.Load()},
+		{"nivora_agent_runs_success_total", "Agent runs that completed successfully.", "counter", m.successfulRuns.Load()},
+		{"nivora_agent_runs_failed_total", "Agent runs that failed.", "counter", m.failedRuns.Load()},
+		{"nivora_agent_queue_rejected_total", "Agent runs rejected by overload protection.", "counter", m.queueRejected.Load()},
+		{"nivora_readiness_failures_total", "Dependency readiness checks that failed.", "counter", m.readinessFailures.Load()},
 	}
 	for _, metric := range lines {
-		if _, err := fmt.Fprintf(w, "# HELP %s %s\n# TYPE %s gauge\n%s %d\n", metric.name, metric.help, metric.name, metric.name, metric.value); err != nil {
+		if _, err := fmt.Fprintf(w, "# HELP %s %s\n# TYPE %s %s\n%s %d\n", metric.name, metric.help, metric.name, metric.metricType, metric.name, metric.value); err != nil {
 			return err
 		}
 	}
